@@ -56,6 +56,7 @@ public class Main
     }
     public static String getKeyTable(ClientConnection client, String base, String database, String table){
         String keyDB = getKeyDB(client, base, database);
+        System.out.println("Data Key > " + keyDB);
         client.sendCommand(Command.HGET, SafeEncoder.encode(keyDB), SafeEncoder.encode(table));
         String ros_str;
         ros_str = client.getBulkReply();
@@ -67,14 +68,17 @@ public class Main
     public static String getKeyAttribute(ClientConnection client, String base, String database, String table, String attribute){
         String keyTable = getKeyTable(client, base, database, table);
 
+        System.out.println(keyTable);
         client.sendCommand(Command.HGET, SafeEncoder.encode(keyTable), SafeEncoder.encode(attribute));
         String ros_str;
         ros_str = client.getBulkReply();
 
         String value = ros_str;
-
+        System.out.println("VAL is " + value);
+        
         String key_attribute = attribute + value.split(",")[0];
-
+        System.out.println(key_attribute);
+        
         return key_attribute;
     }
 
@@ -292,12 +296,8 @@ public class Main
         List<String> ros_list = new ArrayList<>();
         List<String> rows = new ArrayList<>();
 
-        System.out.println("ATTRU " + attribute);
-
-        System.out.println("VAL " + value);
 
         StringBuilder result = new StringBuilder();
-
         String keyAttribute = getKeyAttribute(client, base, database, table, attribute);
 
         client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
@@ -409,6 +409,7 @@ public class Main
         String[] operations = conditions.split(" ");
         Stack<String> st = new Stack<>();
         
+        //System.out.println(conditions);
         //for(int s = 0; s < operations.length; s++){
         //    System.out.println(operations[s]);
         //}
@@ -426,7 +427,7 @@ public class Main
             if(isOp(operations[idx])){
                 b = st.pop();
                 a = st.pop();
-                System.out.println(a + "\n" + b);
+                //System.out.println(a + "\n" + b);
                 if(operations[idx].equals("=")){
                     c = operateEqual(client, base, database, table, a, b);
                     st.push(c);
@@ -539,8 +540,6 @@ public class Main
             
             if(op.equals("show")){
                 
-                //System.out.printf("\n%s >> %s", "Database Name", DATABASE);
-                //System.out.println();
                 sqlShow(client, BASE, DATABASE);
             }
             else if(op.equals("create")){
@@ -557,9 +556,6 @@ public class Main
                 //System.out.println();
 
                 sqlCreate(client, BASE, DATABASE, parsed.get(0), parsed.get(1), parsed.get(2));
-
-                //client.sendCommand(Command.SQLCREATETABLE, database_name, table_name, attributes, types);
-                //result = client.getStatusCodeReply();
             }
             else if(op.equals("insert")){
 
@@ -573,8 +569,6 @@ public class Main
                 //System.out.println();
 
                 sqlInsert(client, BASE, DATABASE, parsed.get(0), parsed.get(1));
-                //client.sendCommand(Command.SQLINSERT, database_name, table_name, values);
-                //result = client.getStatusCodeReply();
             }
             else if(op.equals("select")){
                 String[] select_from_where = command.split(" ");
@@ -621,25 +615,21 @@ public class Main
 
                 ArrayList<String> parsed = parse.parseUpdate(command);
 
-                System.out.printf("\n%s >> %s", "Database Name", DATABASE);
-                System.out.println();
-                System.out.printf("%s >> %s", "Table", parsed.get(0));
-                System.out.println();
-                System.out.printf("%s >> %s", "Update", parsed.get(1));
-                System.out.println();
-                System.out.printf("%s >> %s", "Condition", parsed.get(2));
-                System.out.println();
+                //System.out.printf("\n%s >> %s", "Database Name", DATABASE);
+                //System.out.println();
+                //System.out.printf("%s >> %s", "Table", parsed.get(0));
+                //System.out.println();
+                //System.out.printf("%s >> %s", "Update", parsed.get(1));
+                //System.out.println();
+                //System.out.printf("%s >> %s", "Condition", parsed.get(2));
+                //System.out.println();
 
                 sqlUpdate(client, BASE, DATABASE, parsed.get(0), parsed.get(1), parsed.get(2));
-                //client.sendCommand(Command.SQLUPDATE, database_name, tables, updates, conditions);
-                //result = client.getStatusCodeReply();
-
             }
             else if(op.equals("delete")){
 
                 ArrayList<String> parsed = parse.parseDelete(command);
-                System.out.println("PARSE " + parsed.get(1));
-
+ 
                 //System.out.printf("\n%s >> %s", "Database Name", DATABASE);
                 //System.out.println();
                 //System.out.printf("%s >> %s", "Table", parsed.get(0));
@@ -648,10 +638,6 @@ public class Main
                 //System.out.println();
 
                 sqlDelete(client, BASE, DATABASE, parsed.get(0), parsed.get(1));
-
-                //client.sendCommand(Command.SQLDELETE, database_name, tables, conditions);
-                //result = client.getBulkReply();
-
             }
             else if(op.equals("exit")){
                 break;
