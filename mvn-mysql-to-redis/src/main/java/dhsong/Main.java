@@ -6,8 +6,11 @@ import dhsong.SafeEncoder;
 import redis.clients.jedis.commands.ProtocolCommand;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Stack;
 
 
 class ClientConnection extends Connection{
@@ -60,6 +63,19 @@ public class Main
         String key_table = table + ros_str;
 
         return key_table;
+    }
+    public static String getKeyAttribute(ClientConnection client, String base, String database, String table, String attribute){
+        String keyTable = getKeyTable(client, base, database, table);
+
+        client.sendCommand(Command.HGET, SafeEncoder.encode(keyTable), SafeEncoder.encode(attribute));
+        String ros_str;
+        ros_str = client.getBulkReply();
+
+        String value = ros_str;
+
+        String key_attribute = attribute + value.split(",")[0];
+
+        return key_attribute;
     }
 
 
@@ -179,6 +195,78 @@ public class Main
 
     } 
 
+    public static void sqlDelete(ClientConnection client, String base, String database, String table, String conditions){
+        Long ros_long;
+        String rows = getRowIdxCondition(client, base, database, table, conditions);
+        System.out.println(rows);
+        List<String> rows_list = Arrays.asList(rows.split(","));
+        Collections.sort(rows_list, Collections.reverseOrder());
+        
+
+        String keyDB = getKeyTable(client, base, database, table);
+        List<String> attributes = new ArrayList<>();
+        List<String> keyAttributes = new ArrayList<>();
+        String row = new String();
+        String lastData = new String();
+        int lastRowId = -1;
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyDB));
+        attributes = client.getMultiBulkReply();
+
+        for(int i = 0; i < attributes.size(); i++){
+            keyAttributes.add(getKeyAttribute(client, base, database, table, attributes.get(i)));
+        }
+        
+        for(int i = 0; i < rows_list.size(); i++){
+            for(int j = 0; j < keyAttributes.size(); j++){
+                client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"));
+                row = client.getBulkReply();
+                lastRowId = Integer.parseInt(row) - 1;
+
+                client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                lastData = client.getBulkReply();
+
+                if(rows_list.get(i).equals(String.valueOf(lastRowId))){
+                    client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                    ros_long = client.getIntegerReply();
+                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
+                    ros_long = client.getIntegerReply();
+                }
+                else{
+                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(lastData));
+                    ros_long = client.getIntegerReply();
+                    client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                    ros_long = client.getIntegerReply();
+                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
+                    ros_long = client.getIntegerReply();    
+                }
+
+            }
+        }
+    } 
+
+    public static void sqlUpdate(ClientConnection client, String base, String database, String table, String updates, String conditions){
+        Long ros_long;
+
+        String rows = getRowIdxCondition(client, base, database, table, conditions);
+        List<String> rows_list = Arrays.asList(rows.split(","));
+        Collections.sort(rows_list, Collections.reverseOrder());
+
+        String update_attribute = updates.split(" ")[0];
+        String update_value = updates.split(" ")[1];
+
+        System.out.println("UPDAT att" + update_attribute);
+        System.out.println("UPDAT val" + update_value);
+        
+        String keyAttribute = getKeyAttribute(client, base, database, table, update_attribute);
+
+        
+        for(int i = 0; i < rows_list.size(); i++){
+            client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(update_value));
+            ros_long = client.getIntegerReply();
+        }
+    } 
+
+
     public static void setup(ClientConnection client, String base, String database){
         client.sendCommand(Command.HSET, SafeEncoder.encode(base), SafeEncoder.encode(database), SafeEncoder.encode("0"));
         Long ros_long;
@@ -190,12 +278,242 @@ public class Main
         ros_str = client.getBulkReply();
         //System.out.println(ros_str);
     } 
+
+    public static boolean isOp(String str){
+        if(str.equals("&&") || str.equals("||") || str.equals("=") || str.equals(">=") || str.equals(">") || str.equals("<=") || str.equals("<")){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    public static String operateEqual(ClientConnection client, String base, String database, String table, String attribute, String value){
+        String ros_str;
+        List<String> ros_list = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+
+        System.out.println("ATTRU " + attribute);
+
+        System.out.println("VAL " + value);
+
+        StringBuilder result = new StringBuilder();
+
+        String keyAttribute = getKeyAttribute(client, base, database, table, attribute);
+
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
+        ros_list = client.getMultiBulkReply();
+        rows = ros_list;
+        rows.remove("ROW");
+
+        for(int i = 0; i < rows.size(); i++){
+            client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
+            ros_str = client.getBulkReply();
+            if(ros_str.equals(value)){
+                if(result.length() == 0){
+                    result.append(rows.get(i));
+                }
+                else{
+                    result.append("," + rows.get(i));
+                }
+            }
+        }
+
+        return result.toString();
+    }
+    public static String operateLess(ClientConnection client, String base, String database, String table, String attribute, String value, boolean eq){
+        String ros_str;
+        List<String> ros_list = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+
+        StringBuilder result = new StringBuilder();
+
+        String keyAttribute = getKeyAttribute(client, base, database, table, attribute);
+
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
+        ros_list = client.getMultiBulkReply();
+        rows = ros_list;
+        rows.remove("ROW");
+
+        for(int i = 0; i < rows.size(); i++){
+            client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
+            ros_str = client.getBulkReply();
+            if(eq){
+                if(ros_str.compareTo(value) <= 0){
+                    if(result.length() == 0){
+                        result.append(rows.get(i));
+                    }
+                    else{
+                        result.append("," + rows.get(i));
+                    }
+                }
+            }
+            else{
+                if(ros_str.compareTo(value) < 0){
+                    if(result.length() == 0){
+                        result.append(rows.get(i));
+                    }
+                    else{
+                        result.append("," + rows.get(i));
+                    }
+                }
+            }
+        }
+
+        return result.toString();
+    }
+    public static String operateGreat(ClientConnection client, String base, String database, String table, String attribute, String value, boolean eq){
+        String ros_str;
+        List<String> ros_list = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+
+        StringBuilder result = new StringBuilder();
+
+        String keyAttribute = getKeyAttribute(client, base, database, table, attribute);
+
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
+        ros_list = client.getMultiBulkReply();
+        rows = ros_list;
+        rows.remove("ROW");
+
+        for(int i = 0; i < rows.size(); i++){
+            client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
+            ros_str = client.getBulkReply();
+            if(eq){
+                if(ros_str.compareTo(value) >= 0){
+                    if(result.length() == 0){
+                        result.append(rows.get(i));
+                    }
+                    else{
+                        result.append("," + rows.get(i));
+                    }
+                }
+            }
+            else{
+                if(ros_str.compareTo(value) > 0){
+                    if(result.length() == 0){
+                        result.append(rows.get(i));
+                    }
+                    else{
+                        result.append("," + rows.get(i));
+                    }
+                }
+            }
+        }
+
+        return result.toString();    
+    }
+
+
+    public static String getRowIdxCondition(ClientConnection client, String base, String database, String table, String conditions){
+        StringBuilder result = new StringBuilder();
+        String[] operations = conditions.split(" ");
+        Stack<String> st = new Stack<>();
+        
+        //for(int s = 0; s < operations.length; s++){
+        //    System.out.println(operations[s]);
+        //}
+
+        int idx = 0;
+        String c = new String();
+        String a = new String();
+        String b = new String();
+        StringBuilder c_buf = new StringBuilder();
+        List<String> a_list = new ArrayList<>();
+        List<String> b_list = new ArrayList<>();
+        List<String> c_list = new ArrayList<>();
+
+        while(idx < operations.length){
+            if(isOp(operations[idx])){
+                b = st.pop();
+                a = st.pop();
+                System.out.println(a + "\n" + b);
+                if(operations[idx].equals("=")){
+                    c = operateEqual(client, base, database, table, a, b);
+                    st.push(c);
+                }
+                else if(operations[idx].equals(">=")){
+                    c = operateGreat(client, base, database, table, a, b, true);
+                    st.push(c);
+                }
+                else if(operations[idx].equals("<=")){
+                    c = operateLess(client, base, database, table, a, b, true);
+                    st.push(c);
+                }
+                else if(operations[idx].equals(">")){
+                    c = operateGreat(client, base, database, table, a, b, false);
+                    st.push(c);
+                }
+                else if(operations[idx].equals("<")){
+                    c = operateLess(client, base, database, table, a, b, false);
+                    st.push(c);
+                }                
+                else if(operations[idx].equals("&&")){
+                    a_list = Arrays.asList(a.split(","));
+                    b_list = Arrays.asList(b.split(","));
+
+                    for(int i = 0; i < a_list.size(); i++){
+                        if(b_list.contains(a_list.get(i))){
+                            if(c_buf.length() == 0){
+                                c_buf.append(a_list.get(i));
+                            }
+                            else{
+                                c_buf.append("," + a_list.get(i));
+                            }
+                        }
+                    }
+                    c = c_buf.toString();
+                    c_buf.delete(0, c_buf.length());
+                    st.push(c);
+                }
+                else if(operations[idx].equals("||")){
+                    a_list = Arrays.asList(a.split(","));
+                    b_list = Arrays.asList(b.split(","));
+                    System.out.println("list A " + a_list);
+                    System.out.println("list B " + b_list);
+
+                    for(int i = 0; i < a_list.size(); i++){
+                        if(!c_list.contains(a_list.get(i))){
+                            c_list.add(a_list.get(i));
+                            if(c_buf.length() == 0){
+                                c_buf.append(a_list.get(i));
+                            }
+                            else{
+                                c_buf.append("," + a_list.get(i));
+                            }
+                        }
+                    }
+                    for(int i = 0; i < b_list.size(); i++){
+                        if(!c_list.contains(b_list.get(i))){
+                            c_list.add(b_list.get(i));
+                            if(c_buf.length() == 0){
+                                c_buf.append(b_list.get(i));
+                            }
+                            else{
+                                c_buf.append("," + b_list.get(i));
+                            }
+                        }
+                    }
+
+                    c = c_buf.toString();
+                    c_buf.delete(0, c_buf.length());
+                    st.push(c);
+                }
+            }
+            else{
+                st.push(operations[idx]);
+            }
+            idx++;
+        }
+
+        return st.pop();
+    }
     public static void main( String[] args )
     {   
         Scanner sc = new Scanner(System.in);
         String BASE = "MySQL";
         String DATABASE = "base";
         ClientConnection client = new ClientConnection();
+
         Parser parse = new Parser();
 
         String ros_str = new String();
@@ -204,13 +522,15 @@ public class Main
 
         client.sendCommand(Command.KEYS, SafeEncoder.encode(BASE));
         ros_list = client.getMultiBulkReply();
+        System.out.println(ros_list);
+
         if(ros_list.isEmpty()){
             setup(client, BASE, DATABASE);
         }
     
         while(true){
             System.out.println("Enter the MySQL Command Below: ");
-            System.out.print("[MySQL-to-Redis]");
+            System.out.print("[MySQL-to-Redis]  ");
             String command = sc.nextLine();
             String[] command_split = command.split(" ");
             command_split[0] = command_split[0].toLowerCase();
@@ -310,6 +630,7 @@ public class Main
                 System.out.printf("%s >> %s", "Condition", parsed.get(2));
                 System.out.println();
 
+                sqlUpdate(client, BASE, DATABASE, parsed.get(0), parsed.get(1), parsed.get(2));
                 //client.sendCommand(Command.SQLUPDATE, database_name, tables, updates, conditions);
                 //result = client.getStatusCodeReply();
 
@@ -317,13 +638,16 @@ public class Main
             else if(op.equals("delete")){
 
                 ArrayList<String> parsed = parse.parseDelete(command);
+                System.out.println("PARSE " + parsed.get(1));
 
-                System.out.printf("\n%s >> %s", "Database Name", DATABASE);
-                System.out.println();
-                System.out.printf("%s >> %s", "Table", parsed.get(0));
-                System.out.println();
-                System.out.printf("%s >> %s", "Condition", parsed.get(1));
-                System.out.println();
+                //System.out.printf("\n%s >> %s", "Database Name", DATABASE);
+                //System.out.println();
+                //System.out.printf("%s >> %s", "Table", parsed.get(0));
+                //System.out.println();
+                //System.out.printf("%s >> %s", "Condition", parsed.get(1));
+                //System.out.println();
+
+                sqlDelete(client, BASE, DATABASE, parsed.get(0), parsed.get(1));
 
                 //client.sendCommand(Command.SQLDELETE, database_name, tables, conditions);
                 //result = client.getBulkReply();

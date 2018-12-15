@@ -414,6 +414,10 @@ class Parser {
             }
             idx += 1;
         }
+
+        conditions_logic[logic_start] = "( " + conditions_logic[logic_start];
+        conditions_logic[conditions_logic.length - 1] = conditions_logic[conditions_logic.length - 1] + " )";
+
         for(int i = 0; i < conditions_logic.length; i++){
             if(i == conditions_logic.length - 1){
                 conditions_logic_paren.append(conditions_logic[i]);
@@ -1166,9 +1170,37 @@ class Parser {
             }
         }
 
-        String conditions_postfix = makePostfix("( " + conditions.toString() + " )");
-        this.str_parsed.add(conditions_postfix);
+        String[] conditions_logic = conditions.toString().split(" ");
+        StringBuilder conditions_logic_paren = new StringBuilder();
+        int idx = 0;
+        int logic_start = 0;
+        int logic_end = 0;
+        while(idx < conditions_logic.length){
+            if(conditions_logic[idx].equals("&&") || conditions_logic[idx].equals("||")){
+                logic_end = idx;
+                conditions_logic[logic_start] = "( " + conditions_logic[logic_start];
+                conditions_logic[logic_end] = ") " + conditions_logic[logic_end];
+                logic_start = logic_end + 1;
+            }
+            idx += 1;
+        }
 
+        conditions_logic[logic_start] = "( " + conditions_logic[logic_start];
+        conditions_logic[conditions_logic.length - 1] = conditions_logic[conditions_logic.length - 1] + " )";
+
+
+        for(int i = 0; i < conditions_logic.length; i++){
+            if(i == conditions_logic.length - 1){
+                conditions_logic_paren.append(conditions_logic[i]);
+            }
+            else{
+                conditions_logic_paren.append(conditions_logic[i] + " ");
+            }
+        }
+        System.out.println(conditions_logic_paren);
+        String conditions_postfix = makePostfix("( " + conditions_logic_paren.toString() + " )");
+        
+        this.str_parsed.add(conditions_postfix);
         return this.getStrParsed();
     }
 
@@ -1448,7 +1480,35 @@ class Parser {
             }
         }
 
-        String conditions_postfix = makePostfix("( " + conditions.toString() + " )");
+        String[] conditions_logic = conditions.toString().split(" ");
+        StringBuilder conditions_logic_paren = new StringBuilder();
+        int idx = 0;
+        int logic_start = 0;
+        int logic_end = 0;
+        while(idx < conditions_logic.length){
+            if(conditions_logic[idx].equals("&&") || conditions_logic[idx].equals("||")){
+                logic_end = idx;
+                conditions_logic[logic_start] = "( " + conditions_logic[logic_start];
+                conditions_logic[logic_end] = ") " + conditions_logic[logic_end];
+                logic_start = logic_end + 1;
+            }
+            idx += 1;
+        }
+        conditions_logic[logic_start] = "( " + conditions_logic[logic_start];
+        conditions_logic[conditions_logic.length - 1] = conditions_logic[conditions_logic.length - 1] + " )";
+
+
+        for(int i = 0; i < conditions_logic.length; i++){
+            if(i == conditions_logic.length - 1){
+                conditions_logic_paren.append(conditions_logic[i]);
+            }
+            else{
+                conditions_logic_paren.append(conditions_logic[i] + " ");
+            }
+        }
+        System.out.println(conditions_logic_paren);
+        String conditions_postfix = makePostfix("( " + conditions_logic_paren.toString() + " )");
+        
         this.str_parsed.add(conditions_postfix);
         return this.getStrParsed();
     }
