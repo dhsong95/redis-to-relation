@@ -3,7 +3,7 @@ package dhsong;
 import java.util.ArrayList;
 import java.util.Stack;
 
-class Parser {
+public class Parser {
     private String str;
     private ArrayList<String> str_parsed;
 
@@ -426,7 +426,7 @@ class Parser {
                 conditions_logic_paren.append(conditions_logic[i] + " ");
             }
         }
-        System.out.println(conditions_logic_paren);
+        //System.out.println(conditions_logic_paren);
         String conditions_postfix = makePostfix("( " + conditions_logic_paren.toString() + " )");
         
         this.str_parsed.add(conditions_postfix);
@@ -1197,7 +1197,7 @@ class Parser {
                 conditions_logic_paren.append(conditions_logic[i] + " ");
             }
         }
-        System.out.println(conditions_logic_paren);
+        //System.out.println(conditions_logic_paren);
         String conditions_postfix = makePostfix("( " + conditions_logic_paren.toString() + " )");
         
         this.str_parsed.add(conditions_postfix);
@@ -1506,7 +1506,7 @@ class Parser {
                 conditions_logic_paren.append(conditions_logic[i] + " ");
             }
         }
-        System.out.println(conditions_logic_paren);
+        //System.out.println(conditions_logic_paren);
         String conditions_postfix = makePostfix("( " + conditions_logic_paren.toString() + " )");
         
         this.str_parsed.add(conditions_postfix);
