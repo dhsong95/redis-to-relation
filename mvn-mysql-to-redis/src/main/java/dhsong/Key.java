@@ -35,8 +35,11 @@ public class Key{
     
         String value = ros_str;
         //System.out.println("VAL is " + value);
-        
-        String key_attribute = attribute + value.split(",")[0];
+
+        String key_attribute = null;
+        if(value != null){
+            key_attribute = attribute + value.split(",")[0];
+        }
         //System.out.println(key_attribute);
         
         return key_attribute;

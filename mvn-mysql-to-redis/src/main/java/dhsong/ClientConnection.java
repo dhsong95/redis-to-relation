@@ -18,6 +18,4 @@ public class ClientConnection extends Connection{
     public void sendCommand(final ProtocolCommand cmd, final byte[]... args){
         super.sendCommand(cmd, args);
     }
-
-
 }

@@ -4,7 +4,9 @@ import dhsong.ClientConnection;
 import dhsong.Protocol.Command;
 import dhsong.SafeEncoder;
 import dhsong.SQL;
+import dhsong.Key;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -116,16 +118,79 @@ public class Main {
                     parsed = parse.parseSelect(command);
                     System.out.printf("\n%s >> %s", "Database Name", DATABASE);
                     System.out.println();
-                    System.out.printf("%s >> %s", "Table", parsed.get(0));
+                    System.out.printf("%s >> %s", "Attribute", parsed.get(0));
                     System.out.println();
-                    System.out.printf("%s >> %s", "Attribute", parsed.get(1));
+                    System.out.printf("%s >> %s", "Table", parsed.get(1));
                     System.out.println();
                     System.out.printf("%s >> %s", "Condition", parsed.get(2));
                     System.out.println();
+
+                    String[] tables = parsed.get(1).split(",");
+
+                    List<String> attributes = Arrays.asList(parsed.get(0).split(","));
+                    List<String> parameter = new ArrayList<>();
+                    String buf;
+                    
+                    if(parsed.get(0).equals("*")){
+                        client.sendCommand(Command.HKEYS, Key.getKeyTable(client, BASE, DATABASE, tables[0]));
+                        ros_list = client.getMultiBulkReply();
+                        attributes = ros_list;
+
+                        for(int i = 0; i < attributes.size(); i++){
+                            for(int j = 0; j < tables.length; j++){
+                                buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i));
+                                if(buf != null){
+                                    attributes.set(i, buf);
+                                    parameter.add(Key.getKeyTable(client, BASE, DATABASE, tables[j]) + " " + attributes.get(i));
+                                }
+                            }
+                        }    
+                    }
+                    else{
+                        for(int i = 0; i < attributes.size(); i++){
+                            for(int j = 0; j < tables.length; j++){
+                                buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i));
+                                if(buf != null){
+                                    attributes.set(i, buf);
+                                    parameter.add(Key.getKeyTable(client, BASE, DATABASE, tables[j]) + " " + attributes.get(i));
+                                }
+                            }
+                        }    
+                    }
+
+
+                    StringBuilder sb = new StringBuilder();
+                    for(int i = 0; i < parameter.size(); i++){
+                        if(sb.length() == 0){
+                            sb.append(parameter.get(i));
+                        }
+                        else{
+                            sb.append(" " + parameter.get(i));
+                        }
+                    }
+
+                    System.out.println(parsed.get(2));
+                    System.out.println(sb);
+
+                    //client.sendCommand(Command.SELECTFROM, parsed.get(2), parameter.get(0).split(" ")[0], parameter.get(0).split(" ")[1]);
+                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb.toString()));
+
+                    ros_str = client.getStatusCodeReply();
+                    System.out.println(ros_str);
+                    client.sendCommand(Command.GETLEFT);
+                    ros_str = client.getBulkReply();
+                    System.out.println(ros_str);
+
+                    boolean left = true;
+                    while(left){
+                        client.sendCommand(Command.GETLEFT);
+                        ros_str = client.getBulkReply();
+                        System.out.println(ros_str);
+                    }
+
+                    
                 }
 
-                //client.sendCommand(Command.SQLSELECT, database_name, tables, attributes, conditions);
-                //result = client.getBulkReply();
             }
             else if(op.equals("update")){
 
