@@ -105,9 +105,9 @@ public class Main {
                     parsed = parse.parseGroup(command);
                     System.out.printf("\n%s >> %s", "Database Name", DATABASE);
                     System.out.println();
-                    System.out.printf("%s >> %s", "Table", parsed.get(0));
+                    System.out.printf("%s >> %s", "Attribute", parsed.get(0));
                     System.out.println();
-                    System.out.printf("%s >> %s", "Attribute", parsed.get(1));
+                    System.out.printf("%s >> %s", "Table", parsed.get(1));
                     System.out.println();
                     System.out.printf("%s >> %s", "Condition", parsed.get(2));
                     System.out.println();
@@ -128,6 +128,18 @@ public class Main {
                     String[] tables = parsed.get(1).split(",");
 
                     List<String> attributes = Arrays.asList(parsed.get(0).split(","));
+                    for(int i = 0; i < attributes.size(); i++){
+                        if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("sum(")){
+                            attributes.set(i, attributes.get(i).substring(4, attributes.get(i).length() - 1));
+                        }
+                        else if(attributes.get(i).length() >= 6 && attributes.get(i).substring(0, 6).equals("count(")){
+                            attributes.set(i, attributes.get(i).substring(6, attributes.get(i).length() - 1));
+                        }
+                        else if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("avg(")){
+                            attributes.set(i, attributes.get(i).substring(4, attributes.get(i).length() - 1));
+                        }
+                    }
+
                     List<String> parameter = new ArrayList<>();
                     String buf;
                     
@@ -159,21 +171,21 @@ public class Main {
                     }
 
 
-                    StringBuilder sb = new StringBuilder();
+                    StringBuilder sb_attribute = new StringBuilder();
                     for(int i = 0; i < parameter.size(); i++){
-                        if(sb.length() == 0){
-                            sb.append(parameter.get(i));
+                        if(sb_attribute.length() == 0){
+                            sb_attribute.append(parameter.get(i));
                         }
                         else{
-                            sb.append(" " + parameter.get(i));
+                            sb_attribute.append(" " + parameter.get(i));
                         }
                     }
 
-                    System.out.println(parsed.get(2));
-                    System.out.println(sb);
 
-                    //client.sendCommand(Command.SELECTFROM, parsed.get(2), parameter.get(0).split(" ")[0], parameter.get(0).split(" ")[1]);
-                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb.toString()));
+                    System.out.println(sb_attribute);
+                    System.out.println(parsed.get(2));
+
+                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb_attribute.toString()));
 
                     ros_str = client.getStatusCodeReply();
                     System.out.println(ros_str);

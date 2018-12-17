@@ -325,6 +325,9 @@ public class Parser {
                             buf.delete(0, buf.length());                                                           
                         }
                     }
+                    else if(select_from_where[i].substring(idx, idx + 1).equals("\"")){
+                        idx += 1;
+                    }
                     else if(idx <= select_from_where[i].length() - 2 && select_from_where[i].substring(idx, idx + 2).equals("&&")){
                         if(conditions.length() == 0){
                             if(buf.length() == 0){
@@ -365,6 +368,26 @@ public class Parser {
                         idx += 2;                           
                         buf.delete(0, buf.length());    
                     }
+                    else if(idx <= select_from_where[i].length() - 2 && select_from_where[i].substring(idx, idx + 2).equals("!=")){
+                        if(conditions.length() == 0){
+                            if(buf.length() == 0){
+                                conditions.append("!=");
+                            }
+                            else{
+                                conditions.append(buf + " !=");
+                            }
+                        }
+                        else{
+                            if(buf.length() == 0){
+                                conditions.append(" !=");
+                            }
+                            else{
+                                conditions.append(" " + buf + " !=");
+                            }
+                        }
+                        idx += 2;                           
+                        buf.delete(0, buf.length());    
+                    }
                     else{
                         if(idx == 0){
                             if(select_from_where[i].length() >= 3 && select_from_where[i].substring(idx, idx + 3).toLowerCase().equals("and")){
@@ -374,6 +397,14 @@ public class Parser {
                             else if(select_from_where[i].length() >= 2 && select_from_where[i].substring(idx, idx + 2).toLowerCase().equals("or")){
                                 buf.append("||");
                                 idx += 2;
+                            }
+                            else if(select_from_where[i].length() >= 4 && select_from_where[i].substring(idx, idx + 4).toLowerCase().equals("like")){
+                                buf.append("LIKE");
+                                idx += 4;
+                            }
+                            else if(select_from_where[i].length() >= 3 && select_from_where[i].substring(idx, idx + 3).toLowerCase().equals("not")){
+                                buf.append("!=");
+                                idx += 3;
                             }
                             else{
                                 buf.append(select_from_where[i].substring(idx, idx + 1));
@@ -680,6 +711,9 @@ public class Parser {
                                 buf.delete(0, buf.length());                                                           
                             }
                         }
+                        else if(select_from_where[i].substring(idx, idx + 1).equals("\"")){
+                            idx += 1;
+                        }
                         else if(idx <= select_from_where[i].length() - 2 && select_from_where[i].substring(idx, idx + 2).equals("&&")){
                             if(conditions.length() == 0){
                                 if(buf.length() == 0){
@@ -720,6 +754,26 @@ public class Parser {
                             idx += 2;                           
                             buf.delete(0, buf.length());    
                         }
+                        else if(idx <= select_from_where[i].length() - 2 && select_from_where[i].substring(idx, idx + 2).equals("!=")){
+                            if(conditions.length() == 0){
+                                if(buf.length() == 0){
+                                    conditions.append("!=");
+                                }
+                                else{
+                                    conditions.append(buf + " !=");
+                                }
+                            }
+                            else{
+                                if(buf.length() == 0){
+                                    conditions.append(" !=");
+                                }
+                                else{
+                                    conditions.append(" " + buf + " !=");
+                                }
+                            }
+                            idx += 2;                           
+                            buf.delete(0, buf.length());    
+                        }
                         else{
                             if(idx == 0){
                                 if(select_from_where[i].length() >= 3 && select_from_where[i].substring(idx, idx + 3).toLowerCase().equals("and")){
@@ -730,7 +784,15 @@ public class Parser {
                                     buf.append("||");
                                     idx += 2;
                                 }
-                                else{
+                                else if(select_from_where[i].length() >= 4 && select_from_where[i].substring(idx, idx + 4).toLowerCase().equals("like")){
+                                    buf.append("LIKE");
+                                    idx += 4;
+                                }
+                                else if(select_from_where[i].length() >= 3 && select_from_where[i].substring(idx, idx + 3).toLowerCase().equals("not")){
+                                    buf.append("!=");
+                                    idx += 3;
+                                }
+                                    else{
                                     buf.append(select_from_where[i].substring(idx, idx + 1));
                                     idx += 1;                                        
                                 }
@@ -1095,6 +1157,9 @@ public class Parser {
                             buf.delete(0, buf.length());                                                           
                         }
                     }
+                    else if(update_set_where[i].substring(idx, idx + 1).equals("\"")){
+                        idx += 1;
+                    }
                     else if(idx <= update_set_where[i].length() - 2 && update_set_where[i].substring(idx, idx + 2).equals("&&")){
                         if(conditions.length() == 0){
                             if(buf.length() == 0){
@@ -1135,6 +1200,26 @@ public class Parser {
                         idx += 2;                           
                         buf.delete(0, buf.length());    
                     }
+                    else if(idx <= update_set_where[i].length() - 2 && update_set_where[i].substring(idx, idx + 2).equals("!=")){
+                        if(conditions.length() == 0){
+                            if(buf.length() == 0){
+                                conditions.append("!=");
+                            }
+                            else{
+                                conditions.append(buf + " !=");
+                            }
+                        }
+                        else{
+                            if(buf.length() == 0){
+                                conditions.append(" !=");
+                            }
+                            else{
+                                conditions.append(" " + buf + " !=");
+                            }
+                        }
+                        idx += 2;                           
+                        buf.delete(0, buf.length());    
+                    }
                     else{
                         if(idx == 0){
                             if(update_set_where[i].length() >= 3 && update_set_where[i].substring(idx, idx + 3).toLowerCase().equals("and")){
@@ -1144,6 +1229,14 @@ public class Parser {
                             else if(update_set_where[i].length() >= 2 && update_set_where[i].substring(idx, idx + 2).toLowerCase().equals("or")){
                                 buf.append("||");
                                 idx += 2;
+                            }
+                            else if(update_set_where[i].length() >= 4 && update_set_where[i].substring(idx, idx + 4).toLowerCase().equals("like")){
+                                buf.append("LIKE");
+                                idx += 4;
+                            }
+                            else if(update_set_where[i].length() >= 3 && update_set_where[i].substring(idx, idx + 3).toLowerCase().equals("not")){
+                                buf.append("!=");
+                                idx += 3;
                             }
                             else{
                                 buf.append(update_set_where[i].substring(idx, idx + 1));
@@ -1405,6 +1498,9 @@ public class Parser {
                             buf.delete(0, buf.length());                                                           
                         }
                     }
+                    else if(delete_where[i].substring(idx, idx + 1).equals("\"")){
+                        idx += 1;
+                    }
                     else if(idx <= delete_where[i].length() - 2 && delete_where[i].substring(idx, idx + 2).equals("&&")){
                         if(conditions.length() == 0){
                             if(buf.length() == 0){
@@ -1445,6 +1541,26 @@ public class Parser {
                         idx += 2;                           
                         buf.delete(0, buf.length());    
                     }
+                    else if(idx <= delete_where[i].length() - 2 && delete_where[i].substring(idx, idx + 2).equals("!=")){
+                        if(conditions.length() == 0){
+                            if(buf.length() == 0){
+                                conditions.append("!=");
+                            }
+                            else{
+                                conditions.append(buf + " !=");
+                            }
+                        }
+                        else{
+                            if(buf.length() == 0){
+                                conditions.append(" !=");
+                            }
+                            else{
+                                conditions.append(" " + buf + " !=");
+                            }
+                        }
+                        idx += 2;                           
+                        buf.delete(0, buf.length());    
+                    }
                     else{
                         if(idx == 0){
                             if(delete_where[i].length() >= 3 && delete_where[i].substring(idx, idx + 3).toLowerCase().equals("and")){
@@ -1454,6 +1570,14 @@ public class Parser {
                             else if(delete_where[i].length() >= 2 && delete_where[i].substring(idx, idx + 2).toLowerCase().equals("or")){
                                 buf.append("||");
                                 idx += 2;
+                            }
+                            else if(delete_where[i].length() >= 4 && delete_where[i].substring(idx, idx + 4).toLowerCase().equals("like")){
+                                buf.append("LIKE");
+                                idx += 4;
+                            }
+                            else if(delete_where[i].length() >= 3 && delete_where[i].substring(idx, idx + 3).toLowerCase().equals("not")){
+                                buf.append("!=");
+                                idx += 3;
                             }
                             else{
                                 buf.append(delete_where[i].substring(idx, idx + 1));
@@ -1546,7 +1670,7 @@ public class Parser {
             }
             else if(operations[idx].equals("&&") || operations[idx].equals("||")){
                 top = stack.peek();
-                if(top.equals("<=") || top.equals(">=") || top.equals("<") || top.equals(">") || top.equals("(") || top.equals("=")){
+                if(top.equals("<=") || top.equals(">=") || top.equals("<") || top.equals(">") || top.equals("(") || top.equals("=") || top.equals("LIKE") || top.equals("!=")){
                     stack.push(operations[idx]);
                 }
                 else if(top.equals("&&") || top.equals("||")){
@@ -1560,7 +1684,7 @@ public class Parser {
                 }
                 idx += 1;
             }
-            else if(operations[idx].equals("<=") || operations[idx].equals(">=") || operations[idx].equals("<") || operations[idx].equals(">") || operations[idx].equals("=")){
+            else if(operations[idx].equals("<=") || operations[idx].equals(">=") || operations[idx].equals("<") || operations[idx].equals(">") || operations[idx].equals("=") || operations[idx].equals("LIKE") || operations[idx].equals("!=")){
                 top = stack.peek();
                 
                 while(stack.isEmpty() && !(top.equals("&&") || top.equals("||"))){
