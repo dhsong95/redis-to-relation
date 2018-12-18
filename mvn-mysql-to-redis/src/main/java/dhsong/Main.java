@@ -209,7 +209,72 @@ public class Main {
                         }
                     }
                     catch(Exception e){
-                    }                                            
+                    }
+
+                    List<String> result_record = new ArrayList<>();
+                    List<StringBuilder> result_attribute = new ArrayList<>();
+
+                    String[] result_line = result_buf.toString().split("\n");
+                    for(int i = 0; i < result_line.length; i++){
+                        result_line[i] = result_line[i].substring(0, result_line[i].length() - 1);
+                        result_record = Arrays.asList(result_line[i].split(","));
+                        if(i == 0){
+                            for(int j = 0; j < result_record.size(); j++){
+                                result_attribute.add(new StringBuilder(result_record.get(j) + ":"));
+                            }
+                        }
+                        else{
+                            for(int j = 0; j < result_record.size(); j++){
+                                result_attribute.set(j, result_attribute.get(j).append(result_record.get(j) + ","));
+                            }
+                        }
+                    }
+
+                    attributes = Arrays.asList(parsed.get(0).split(","));
+                    String[] value;
+                    int sum = 0;
+                    int count = 0;
+                    double avg = 0.0;
+                    for(int i = 0; i < attributes.size(); i++){
+                        if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("sum(")){
+                            sum = 0;
+                            for(int j = 0; j < result_attribute.size(); j++){
+                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(4, attributes.get(i).length() - 1))){
+                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                    for(int k = 0; k < value.length; k++){
+                                        sum += Integer.parseInt(value[k]);
+                                    }
+                                }
+                                System.out.println("Sum of " + result_attribute.get(j).toString().split(":")[0] + " = " + sum);
+                            }
+                        }
+                        else if(attributes.get(i).length() >= 6 && attributes.get(i).substring(0, 6).equals("count(")){
+                            count = 0;
+                            for(int j = 0; j < result_attribute.size(); j++){
+                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(6, attributes.get(i).length() - 1))){
+                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                    count = value.length;
+                                }
+                                System.out.println("Count of " + result_attribute.get(j).toString().split(":")[0] + " = " + count);
+                            }
+                        }
+                        else if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("avg(")){
+                            sum = 0;
+                            count = 0;
+                            for(int j = 0; j < result_attribute.size(); j++){
+                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(4, attributes.get(i).length() - 1))){
+                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                    for(int k = 0; k < value.length; k++){
+                                        sum += Integer.parseInt(value[k]);
+                                    }
+                                    count = value.length;
+                                }
+                                avg = (double)sum / (double)count;
+                                System.out.println("Average of " + result_attribute.get(j).toString().split(":")[0] + " = " + sum);
+                            }
+                        }
+                    }
+
                 }
 
             }
