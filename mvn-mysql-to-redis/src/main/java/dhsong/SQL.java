@@ -142,12 +142,16 @@ public class SQL{
         
         String keyAttribute = Key.getKeyAttribute(client, base, database, table, update_attribute);
 
-        
-        for(int i = 0; i < rows_list.size(); i++){
-            client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(update_value));
-            ros_long = client.getIntegerReply();
+        if(rows_list.size() == 1 && !Util.isStringInteger(rows_list.get(0))){
+            for(int i = 0; i < rows_list.size(); i++){
+                client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(update_value));
+                ros_long = client.getIntegerReply();
+            }
         }
+
+        
     } 
+
 
 
     public static void sqlDelete(ClientConnection client, String base, String database, String table, String conditions){
@@ -170,31 +174,34 @@ public class SQL{
         for(int i = 0; i < attributes.size(); i++){
             keyAttributes.add(Key.getKeyAttribute(client, base, database, table, attributes.get(i)));
         }
-        
-        for(int i = 0; i < rows_list.size(); i++){
-            for(int j = 0; j < keyAttributes.size(); j++){
-                client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"));
-                row = client.getBulkReply();
-                lastRowId = Integer.parseInt(row) - 1;
 
-                client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
-                lastData = client.getBulkReply();
 
-                if(rows_list.get(i).equals(String.valueOf(lastRowId))){
-                    client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
-                    ros_long = client.getIntegerReply();
-                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
-                    ros_long = client.getIntegerReply();
+        if(!(rows_list.size() == 1 && !Util.isStringInteger(rows_list.get(0)))){
+            for(int i = 0; i < rows_list.size(); i++){
+                for(int j = 0; j < keyAttributes.size(); j++){
+                    client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"));
+                    row = client.getBulkReply();
+                    lastRowId = Integer.parseInt(row) - 1;
+    
+                    client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                    lastData = client.getBulkReply();
+    
+                    if(rows_list.get(i).equals(String.valueOf(lastRowId))){
+                        client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                        ros_long = client.getIntegerReply();
+                        client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
+                        ros_long = client.getIntegerReply();
+                    }
+                    else{
+                        client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(lastData));
+                        ros_long = client.getIntegerReply();
+                        client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
+                        ros_long = client.getIntegerReply();
+                        client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
+                        ros_long = client.getIntegerReply();    
+                    }
+    
                 }
-                else{
-                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(rows_list.get(i)), SafeEncoder.encode(lastData));
-                    ros_long = client.getIntegerReply();
-                    client.sendCommand(Command.HDEL, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode(String.valueOf(lastRowId)));
-                    ros_long = client.getIntegerReply();
-                    client.sendCommand(Command.HSET, SafeEncoder.encode(keyAttributes.get(j)), SafeEncoder.encode("ROW"), SafeEncoder.encode(String.valueOf(lastRowId)));
-                    ros_long = client.getIntegerReply();    
-                }
-
             }
         }
     } 

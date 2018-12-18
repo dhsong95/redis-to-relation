@@ -10,6 +10,17 @@ import java.util.List;
 import java.util.Stack;
 
 public class Util{
+
+    public static boolean isStringInteger(String str){
+        try{
+            Integer.parseInt(str);
+        }
+        catch(Exception e){
+            return false;
+        }
+        return true;
+    }
+
     public static String getRedundancy(ClientConnection client, String a){
         String ros_str;
         int red = 0;
@@ -45,9 +56,16 @@ public class Util{
             if(isOp(operations[idx])){
                 b = st.pop();
                 a = st.pop();
-                //System.out.println(a + "\n" + b);
                 if(operations[idx].equals("=")){
                     c = operateEqual(client, base, database, table, a, b);
+                    st.push(c);
+                }
+                else if(operations[idx].equals("!=")){
+                    c = operateNotEqual(client, base, database, table, a, b);
+                    st.push(c);
+                }
+                else if(operations[idx].equals("LIKE")){
+                    c = operateLike(client, base, database, table, a, b);
                     st.push(c);
                 }
                 else if(operations[idx].equals(">=")){
@@ -123,12 +141,11 @@ public class Util{
             }
             idx++;
         }
-
         return st.pop();
     }
 
     public static boolean isOp(String str){
-        if(str.equals("&&") || str.equals("||") || str.equals("=") || str.equals(">=") || str.equals(">") || str.equals("<=") || str.equals("<")){
+        if(str.equals("&&") || str.equals("||") || str.equals("=") || str.equals(">=") || str.equals(">") || str.equals("<=") || str.equals("<") || str.equals("!=") || str.equals("LIKE")){
             return true;
         }
         else{
@@ -153,6 +170,124 @@ public class Util{
             client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
             ros_str = client.getBulkReply();
             if(ros_str.equals(value)){
+                if(result.length() == 0){
+                    result.append(rows.get(i));
+                }
+                else{
+                    result.append("," + rows.get(i));
+                }
+            }
+        }
+
+        return result.toString();
+    }
+    public static String operateNotEqual(ClientConnection client, String base, String database, String table, String attribute, String value){
+        String ros_str;
+        List<String> ros_list = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+
+
+        StringBuilder result = new StringBuilder();
+        String keyAttribute = Key.getKeyAttribute(client, base, database, table, attribute);
+
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
+        ros_list = client.getMultiBulkReply();
+        rows = ros_list;
+        rows.remove("ROW");
+
+        for(int i = 0; i < rows.size(); i++){
+            client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
+            ros_str = client.getBulkReply();
+            if(!ros_str.equals(value)){
+                if(result.length() == 0){
+                    result.append(rows.get(i));
+                }
+                else{
+                    result.append("," + rows.get(i));
+                }
+            }
+        }
+
+        return result.toString();
+    }
+    public static boolean compareLike(String str, String pattern){
+        
+        boolean result = false;
+        int idx = 0;
+
+        for(int i = 0; i < str.length(); i++){
+            if(pattern.charAt(idx) == str.charAt(i)){
+                idx++;
+                if(idx >= pattern.length()){
+                    result = true;
+                    break;
+                }
+            }
+            else if(pattern.charAt(idx) == '%'){
+                idx++;
+                if(idx >= pattern.length()){
+                    result = true;
+                    break;
+                }
+                else{
+                    while(pattern.charAt(idx) != str.charAt(i)){
+                        i++;
+                        if(i >= str.length()){
+                            break;
+                        }
+                    }
+                    if(i >= str.length()){
+                        result = false;
+                        break;
+                    }
+                    else if(i == str.length() - 1 && idx == pattern.length() - 1){
+                        result = true;
+                        break;
+                    }
+                    else{
+                        idx++;
+                    }
+                }
+            }
+            else if(pattern.charAt(idx) == '_'){
+                idx++;
+                if(i >= str.length()){
+                    result = false;
+                    break;
+                }
+                else{
+                    if(idx >= pattern.length()){
+                        result = true;
+                        break;
+                    }
+                }
+            }
+            else{
+                result = false;
+                break;
+            }
+        }
+
+        return result;
+    }
+    public static String operateLike(ClientConnection client, String base, String database, String table, String attribute, String value){
+        String ros_str;
+        List<String> ros_list = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+
+
+        StringBuilder result = new StringBuilder();
+        String keyAttribute = Key.getKeyAttribute(client, base, database, table, attribute);
+
+        client.sendCommand(Command.HKEYS, SafeEncoder.encode(keyAttribute));
+        ros_list = client.getMultiBulkReply();
+        rows = ros_list;
+        rows.remove("ROW");
+
+        for(int i = 0; i < rows.size(); i++){
+            client.sendCommand(Command.HGET, SafeEncoder.encode(keyAttribute), SafeEncoder.encode(rows.get(i)));
+            ros_str = client.getBulkReply();
+            if(compareLike(ros_str, value)){
                 if(result.length() == 0){
                     result.append(rows.get(i));
                 }

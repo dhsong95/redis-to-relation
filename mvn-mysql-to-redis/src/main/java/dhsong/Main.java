@@ -31,7 +31,7 @@ public class Main {
     {   
         Scanner sc = new Scanner(System.in);
         String BASE = "MySQL";
-        String DATABASE = "base";
+        String DATABASE = "BaseDB";
         ClientConnection client = new ClientConnection();
 
         Parser parse = new Parser();
@@ -161,10 +161,19 @@ public class Main {
                     else{
                         for(int i = 0; i < attributes.size(); i++){
                             for(int j = 0; j < tables.length; j++){
-                                buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i));
-                                if(buf != null){
-                                    attributes.set(i, buf);
-                                    parameter.add(Key.getKeyTable(client, BASE, DATABASE, tables[j]) + " " + attributes.get(i));
+                                if(attributes.get(i).split(".")[0].equals(tables[j])){
+                                    buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i).split(".")[1]);
+                                    if(buf != null){
+                                        attributes.set(i, buf);
+                                        parameter.add(Key.getKeyTable(client, BASE, DATABASE, tables[j]) + " " + attributes.get(i));
+                                    }    
+                                }
+                                else{
+                                    buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i));
+                                    if(buf != null){
+                                        attributes.set(i, buf);
+                                        parameter.add(Key.getKeyTable(client, BASE, DATABASE, tables[j]) + " " + attributes.get(i));
+                                    }
                                 }
                             }
                         }    
@@ -182,25 +191,25 @@ public class Main {
                     }
 
 
-                    System.out.println(sb_attribute);
-                    System.out.println(parsed.get(2));
+                    
+                    //client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb_attribute.toString()));
 
-                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb_attribute.toString()));
+
+                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode("name totoro =="), SafeEncoder.encode("Student0 name0 Student0 id0"));
 
                     ros_str = client.getStatusCodeReply();
                     System.out.println(ros_str);
-                    client.sendCommand(Command.GETLEFT);
-                    ros_str = client.getBulkReply();
-                    System.out.println(ros_str);
-
-                    boolean left = true;
-                    while(left){
-                        client.sendCommand(Command.GETLEFT);
-                        ros_str = client.getBulkReply();
-                        System.out.println(ros_str);
+                    StringBuilder result_buf = new StringBuilder();
+                    try{
+                        while(true){
+                            client.sendCommand(Command.GETLEFT);
+                            ros_str = client.getBulkReply();
+                            System.out.println(ros_str);
+                            result_buf.append(ros_str);
+                        }
                     }
-
-                    
+                    catch(Exception e){
+                    }                                            
                 }
 
             }
