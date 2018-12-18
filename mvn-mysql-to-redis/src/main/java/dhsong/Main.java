@@ -116,14 +116,14 @@ public class Main {
                 }
                 else{
                     parsed = parse.parseSelect(command);
-                    System.out.printf("\n%s >> %s", "Database Name", DATABASE);
-                    System.out.println();
-                    System.out.printf("%s >> %s", "Attribute", parsed.get(0));
-                    System.out.println();
-                    System.out.printf("%s >> %s", "Table", parsed.get(1));
-                    System.out.println();
+                    //System.out.printf("\n%s >> %s", "Database Name", DATABASE);
+                    //System.out.println();
+                    //System.out.printf("%s >> %s", "Attribute", parsed.get(0));
+                    //System.out.println();
+                    //System.out.printf("%s >> %s", "Table", parsed.get(1));
+                    //System.out.println();
                     System.out.printf("%s >> %s", "Condition", parsed.get(2));
-                    System.out.println();
+                    //System.out.println();
 
                     String[] tables = parsed.get(1).split(",");
 
@@ -161,7 +161,7 @@ public class Main {
                     else{
                         for(int i = 0; i < attributes.size(); i++){
                             for(int j = 0; j < tables.length; j++){
-                                if(attributes.get(i).split(".")[0].equals(tables[j])){
+                                if((attributes.get(i).indexOf(".") != -1) && (attributes.get(i).split(".")[0].equals(tables[j]))){
                                     buf = Key.getKeyAttribute(client, BASE, DATABASE, tables[j], attributes.get(i).split(".")[1]);
                                     if(buf != null){
                                         attributes.set(i, buf);
@@ -195,10 +195,9 @@ public class Main {
                     //client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb_attribute.toString()));
 
 
-                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode("name totoro =="), SafeEncoder.encode("Student0 name0 Student0 id0"));
-
+                    client.sendCommand(Command.SELECTFROM, SafeEncoder.encode(parsed.get(2)), SafeEncoder.encode(sb_attribute.toString()), SafeEncoder.encode("NONCONCRETE"));
                     ros_str = client.getStatusCodeReply();
-                    System.out.println(ros_str);
+                    //System.out.println(ros_str);
                     StringBuilder result_buf = new StringBuilder();
                     try{
                         while(true){
@@ -213,22 +212,36 @@ public class Main {
 
                     List<String> result_record = new ArrayList<>();
                     List<StringBuilder> result_attribute = new ArrayList<>();
+                    List<String> result_line = new ArrayList<>();
 
-                    String[] result_line = result_buf.toString().split("\n");
-                    for(int i = 0; i < result_line.length; i++){
-                        result_line[i] = result_line[i].substring(0, result_line[i].length() - 1);
-                        result_record = Arrays.asList(result_line[i].split(","));
+                    
+                    result_line = Arrays.asList(result_buf.toString().split("\n"));
+                    for(int i = 0; i < result_line.size(); i++){
+                        if(result_line.get(i).length() == 0){
+                            result_line.remove(i);
+                        }
+                    }
+
+                    for(int i = 0; i < result_line.size() - 1 ; i++){
+                        result_line.set(i, result_line.get(i).substring(0, result_line.get(i).length() - 1));
+                        result_record = Arrays.asList(result_line.get(i).split(","));
                         if(i == 0){
                             for(int j = 0; j < result_record.size(); j++){
-                                result_attribute.add(new StringBuilder(result_record.get(j) + ":"));
+                                result_attribute.add(new StringBuilder(result_record.get(j).split("[.]")[1] + ":"));
                             }
                         }
                         else{
                             for(int j = 0; j < result_record.size(); j++){
-                                result_attribute.set(j, result_attribute.get(j).append(result_record.get(j) + ","));
+                                StringBuilder temp = result_attribute.get(j);
+                                temp.append(result_record.get(j));
+                                result_attribute.set(j, temp.append(","));
                             }
                         }
                     }
+
+                    //System.out.println(result_attribute);
+                    //System.out.println(result_attribute.size());
+
 
                     attributes = Arrays.asList(parsed.get(0).split(","));
                     String[] value;
@@ -239,38 +252,38 @@ public class Main {
                         if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("sum(")){
                             sum = 0;
                             for(int j = 0; j < result_attribute.size(); j++){
-                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(4, attributes.get(i).length() - 1))){
-                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                if(result_attribute.get(j).toString().split(":")[0].indexOf(attributes.get(i).substring(4, attributes.get(i).length() - 1)) == 0){
+                                    value = result_attribute.get(j).toString().substring(0, result_attribute.get(i).length() - 1).split(":")[1].split(",");
                                     for(int k = 0; k < value.length; k++){
                                         sum += Integer.parseInt(value[k]);
                                     }
+                                    System.out.println("Sum of " + attributes.get(i).substring(4, attributes.get(i).length() - 1) + " = " + sum);
                                 }
-                                System.out.println("Sum of " + result_attribute.get(j).toString().split(":")[0] + " = " + sum);
                             }
                         }
                         else if(attributes.get(i).length() >= 6 && attributes.get(i).substring(0, 6).equals("count(")){
                             count = 0;
                             for(int j = 0; j < result_attribute.size(); j++){
-                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(6, attributes.get(i).length() - 1))){
-                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                if(result_attribute.get(j).toString().split(":")[0].indexOf(attributes.get(i).substring(6, attributes.get(i).length() - 1)) == 0){
+                                    value = result_attribute.get(j).toString().substring(0, result_attribute.get(i).length() - 1).split(":")[1].split(",");
                                     count = value.length;
+                                    System.out.println("Count of " + attributes.get(i).substring(6, attributes.get(i).length() - 1) + " = " + count);
                                 }
-                                System.out.println("Count of " + result_attribute.get(j).toString().split(":")[0] + " = " + count);
                             }
                         }
                         else if(attributes.get(i).length() >= 4 && attributes.get(i).substring(0, 4).equals("avg(")){
                             sum = 0;
                             count = 0;
                             for(int j = 0; j < result_attribute.size(); j++){
-                                if(result_attribute.get(j).toString().split(":")[0].equals(attributes.get(i).substring(4, attributes.get(i).length() - 1))){
-                                    value = result_attribute.get(j).toString().split(":")[1].split(",");
+                                if(result_attribute.get(j).toString().split(":")[0].indexOf(attributes.get(i).substring(4, attributes.get(i).length() - 1)) == 0){
+                                    value = result_attribute.get(j).toString().substring(0, result_attribute.get(i).length() - 1).split(":")[1].split(",");
                                     for(int k = 0; k < value.length; k++){
                                         sum += Integer.parseInt(value[k]);
                                     }
                                     count = value.length;
+                                    avg = (double)sum / (double)count;
+                                    System.out.println("Average of " + attributes.get(i).substring(4, attributes.get(i).length() - 1) + " = " + sum);    
                                 }
-                                avg = (double)sum / (double)count;
-                                System.out.println("Average of " + result_attribute.get(j).toString().split(":")[0] + " = " + sum);
                             }
                         }
                     }
